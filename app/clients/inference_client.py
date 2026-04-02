@@ -1,6 +1,7 @@
 from typing import Any
 
 import httpx
+import random
 
 from app.core.config import Settings
 from app.core.errors import InferenceServiceError
@@ -13,17 +14,25 @@ class InferenceClient:
     async def predict(self, image_bytes: bytes, content_type: str) -> dict[str, Any]:
         files = {"file": ("upload", image_bytes, content_type)}
 
-        try:
-            async with httpx.AsyncClient(
-                base_url=self._settings.inference_base_url,
-                timeout=self._settings.inference_timeout_seconds,
-            ) as client:
-                response = await client.post(self._settings.inference_predict_path, files=files)
-                response.raise_for_status()
-                payload = response.json()
-        except (httpx.HTTPError, ValueError) as exc:
-            raise InferenceServiceError() from exc
-
+        # try:
+        #     async with httpx.AsyncClient(
+        #         base_url=self._settings.inference_base_url,
+        #         timeout=self._settings.inference_timeout_seconds,
+        #     ) as client:
+        #         response = await client.post(self._settings.inference_predict_path, files=files)
+        #         response.raise_for_status()
+        #         payload = response.json()
+        # except (httpx.HTTPError, ValueError) as exc:
+        #     raise InferenceServiceError() from exc
+        
+        # Dummy payload
+        payload = {
+            "calories": random.randint(100, 1000),
+            "protein": random.randint(10, 100),
+            "carbs": random.randint(10, 100),
+            "fat": random.randint(10, 100),
+        }
+        
         return {
             "calories": float(payload.get("calories", 0)),
             "protein": float(payload.get("protein", 0)),
