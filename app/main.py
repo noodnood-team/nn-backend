@@ -7,6 +7,7 @@ from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
+from app.sagemaker.adaptors import router as sagemaker_router
 
 settings = get_settings()
 configure_logging()
@@ -19,6 +20,7 @@ app = FastAPI(
 
 register_exception_handlers(app)
 app.include_router(api_router, prefix=settings.api_prefix)
+app.include_router(sagemaker_router)
 
 
 @app.middleware("http")
