@@ -4,3 +4,6 @@ httpx
 pydantic-settings
 python-multipart
 pytest
+torch
+transformers
+Pillow
