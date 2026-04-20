@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 
 class NutritionPrediction(BaseModel):
@@ -10,4 +10,10 @@ class NutritionPrediction(BaseModel):
 
 class PredictResponse(BaseModel):
     ok: bool = True
-    prediction: NutritionPrediction
+    prediction: NutritionPrediction | None = None
+    message: str | None = None
+    
+
+class FoodValidation(BaseModel):
+    valid: bool
+    reason: str | None = None
