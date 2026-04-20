@@ -84,3 +84,51 @@ See `.env.example` for defaults.
 - Business logic is kept out of route handlers.
 - Inference integration is isolated in a client module for easier replacement.
 - Logging includes request latency and request ID to support future observability.
+
+## Expose API via Cloudflare Tunnel (SageMaker)
+
+When running this backend inside **SageMaker Studio**, `localhost:8000` is not accessible from outside.  
+You can expose it temporarily using a Cloudflare Tunnel (`cloudflared`).
+
+1) Download cloudflared
+
+```bash
+wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+mv cloudflared-linux-amd64 cloudflared
+chmod +x cloudflared
+```
+
+2) Run the API
+
+```bash
+.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+3) Start the tunnel
+
+Open a new terminal and run:
+
+```bash
+./cloudflared tunnel --url http://localhost:8000
+```
+
+4) Access the public endpoint
+
+After starting the tunnel, you will see a URL like:
+
+```bash
+https://xxxx.trycloudflare.com
+```
+
+You can now access the API externally:
+
+- Swagger UI: `https://xxxx.trycloudflare.com/docs`
+- Health check: `https://xxxx.trycloudflare.com/api/v1/health`
+
+Notes:
+
+- This URL is temporary and changes when the tunnel restarts.
+- Keep both `uvicorn` and `cloudflared` running while you need external access.
+
+
+
