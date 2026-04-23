@@ -48,5 +48,5 @@ async def predict(
     if not food_result.valid:
         return PredictResponse(ok=False, message=random.choice(NON_FOOD_IMAGE_MESSAGES))
 
-    nutrition = await prediction_service.predict(image_bytes, file.content_type)
+    nutrition = await prediction_service.predict(image_bytes, file.content_type, file=file)
     return PredictResponse(ok=True, prediction=nutrition, message=random.choice(ESTIMATION_DISCLAIMER))
