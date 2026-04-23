@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     app_debug: bool = Field(default=True, alias="APP_DEBUG")
     api_prefix: str = Field(default="/api/v1", alias="API_PREFIX")
 
+    allowed_origins: str = Field(default="http://localhost:3000", alias="ALLOWED_ORIGINS",)
+
     max_image_size_bytes: int = Field(default=5 * 1024 * 1024, alias="MAX_IMAGE_SIZE_BYTES")
 
     food_clip_model_id: str = Field(
