@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+gunicorn
 httpx
 pydantic-settings
 python-multipart
