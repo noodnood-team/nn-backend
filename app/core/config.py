@@ -35,6 +35,14 @@ class Settings(BaseSettings):
     openai_model: str = Field(default="gpt-4o-mini", alias="OPENAI_MODEL")
     openai_timeout_seconds: float = Field(default=10.0, alias="OPENAI_TIMEOUT_SECONDS")
 
+    # Database: async SQLite default. Postgres example: postgresql+asyncpg://user:pass@host/db
+    database_url: str = Field(
+        default="sqlite+aiosqlite:///./db.sqlite3",
+        alias="DATABASE_URL",
+    )
+    # If non-empty, dashboard routes require X-Dashboard-Key header matching this value.
+    dashboard_api_key: str = Field(default="", alias="DASHBOARD_API_KEY")
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -4,6 +4,11 @@ httpx
 pydantic-settings
 python-multipart
 pytest
+pytest-asyncio
+sqlalchemy[asyncio]
+greenlet
+aiosqlite
+alembic
 torch
 transformers
 Pillow

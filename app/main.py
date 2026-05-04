@@ -1,6 +1,6 @@
 import time
+from contextlib import asynccontextmanager
 from uuid import uuid4
-import os
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,14 +9,28 @@ from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
+from app.db.session import configure_database, dispose_database
 
-settings = get_settings()
 configure_logging()
 logger = get_logger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    settings = get_settings()
+    configure_database(settings.database_url)
+    try:
+        yield
+    finally:
+        await dispose_database()
+
+
+settings = get_settings()
 
 app = FastAPI(
     title=settings.app_name,
     debug=settings.app_debug,
+    lifespan=lifespan,
 )
 
 app.add_middleware(
