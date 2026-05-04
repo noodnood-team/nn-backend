@@ -58,6 +58,22 @@ async def list_predictions(
 
 
 @router.get(
+    "/dashboard/predictions/{record_id}",
+    response_model=PredictionRecordItem,
+    dependencies=[Depends(verify_dashboard_access)],
+)
+async def get_prediction(
+    record_id: int,
+    session: AsyncSession = Depends(get_db),
+    service: DashboardService = Depends(get_dashboard_service),
+) -> PredictionRecordItem:
+    item = await service.get_record(session, record_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Prediction record not found")
+    return item
+
+
+@router.get(
     "/dashboard/summary",
     response_model=DashboardSummaryResponse,
     dependencies=[Depends(verify_dashboard_access)],
@@ -86,21 +102,3 @@ async def dashboard_summary(
             detail="start must be less than or equal to end",
         )
     return await service.summarize_records(session, range_start=start_dt, range_end=end_dt)
-
-
-@router.get(
-    "/dashboard/predictions/{record_id}",
-    response_model=PredictionRecordItem,
-    dependencies=[Depends(verify_dashboard_access)],
-)
-async def get_prediction(
-    record_id: int,
-    session: AsyncSession = Depends(get_db),
-    service: DashboardService = Depends(get_dashboard_service),
-) -> PredictionRecordItem:
-    item = await service.get_record(session, record_id)
-    if item is None:
-        raise HTTPException(status_code=404, detail="Prediction record not found")
-    return item
-
-
