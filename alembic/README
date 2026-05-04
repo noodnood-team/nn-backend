@@ -1,0 +1,7 @@
+Generic single-database configuration.
+
+Apply migrations (from repo root, with venv activated):
+
+    alembic upgrade head
+
+Uses `DATABASE_URL` when set (see `alembic/env.py` for async-to-sync URL mapping). Defaults to `sqlite:///./db.sqlite3` for Alembic and `sqlite+aiosqlite:///./db.sqlite3` for the FastAPI app — use the same file path for both.
