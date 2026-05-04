@@ -7,3 +7,4 @@ pytest
 torch
 transformers
 Pillow
+openai
