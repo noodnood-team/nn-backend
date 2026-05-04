@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     inference_predict_path: str = Field(default="/predict", alias="INFERENCE_PREDICT_PATH")
     inference_timeout_seconds: float = Field(default=10.0, alias="INFERENCE_TIMEOUT_SECONDS")
 
+    openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
+    openai_model: str = Field(default="gpt-4o-mini", alias="OPENAI_MODEL")
+    openai_timeout_seconds: float = Field(default=10.0, alias="OPENAI_TIMEOUT_SECONDS")
+
 
 @lru_cache
 def get_settings() -> Settings:
