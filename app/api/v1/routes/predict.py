@@ -83,10 +83,14 @@ async def predict(
             return PredictResponse(ok=False, message=msg)
 
         nutrition = await prediction_service.predict(image_bytes, file.content_type, file=file)
+        
+        #  TODO check this later
+        # message = await openai_service.generate_message(nutrition)
+        # if message is None:
+        #     message = random.choice(ESTIMATION_DISCLAIMER)
+        #  TODO check this later
 
-        message = await openai_service.generate_message(nutrition)
-        if message is None:
-            message = random.choice(ESTIMATION_DISCLAIMER)
+        message = random.choice(ESTIMATION_DISCLAIMER)
 
         await record_prediction_attempt(
             history,

@@ -30,7 +30,7 @@ class PredictionRecord(Base):
     )
     ok: Mapped[bool] = mapped_column(Boolean, nullable=False)
     message: Mapped[str | None] = mapped_column(Text, nullable=True)
-    filename: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    filename: Mapped[str | None] = mapped_column(Text, nullable=True)
     content_type: Mapped[str | None] = mapped_column(String(128), nullable=True)
     calories: Mapped[float | None] = mapped_column(Float, nullable=True)
     protein: Mapped[float | None] = mapped_column(Float, nullable=True)
