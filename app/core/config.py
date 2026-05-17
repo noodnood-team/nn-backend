@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     # If non-empty, dashboard routes require X-Dashboard-Key header matching this value.
     dashboard_api_key: str = Field(default="", alias="DASHBOARD_API_KEY")
 
+    # Redis cache URL. Set to empty string to disable caching entirely.
+    redis_url: str = Field(default="redis://redis:6379/0", alias="REDIS_URL")
+
 
 @lru_cache
 def get_settings() -> Settings:
