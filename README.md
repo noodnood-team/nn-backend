@@ -29,6 +29,34 @@ domain/application/infrastructure layout incremental instead of a rewrite.
 
 ## Quick Start
 
+### Using Docker (Recommended)
+
+1) Create a local env file:
+
+```bash
+cp .env.example .env
+```
+
+2) Start the PostgreSQL database and API server:
+
+**First time setup (or when you change requirements.txt):**
+```bash
+docker compose up --build
+```
+This will build the API image, run database migrations, and start the server.
+
+**Regular daily usage:**
+```bash
+docker compose up
+```
+*Note: Your `app/` folder is mounted into the container, so any changes you make to your Python files will automatically hot-reload the server! No need to rebuild.*
+
+3) Open docs:
+
+- Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+### Local Development (Without Docker)
+
 1) Install dependencies:
 
 ```bash
@@ -41,13 +69,16 @@ domain/application/infrastructure layout incremental instead of a rewrite.
 cp .env.example .env
 ```
 
-3) Run the API:
+3) Ensure you have a running PostgreSQL database (or use the default SQLite setup) and update `DATABASE_URL` in your `.env` if necessary.
+
+4) Run migrations and start the API:
 
 ```bash
+alembic upgrade head
 .venv/bin/uvicorn app.main:app --reload
 ```
 
-4) Open docs:
+5) Open docs:
 
 - Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
 

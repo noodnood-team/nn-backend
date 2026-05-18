@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
+from app.core.cache import close_cache, init_cache
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
@@ -19,9 +20,12 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     settings = get_settings()
     configure_database(settings.database_url)
+    if settings.redis_url:
+        await init_cache(settings.redis_url)
     try:
         yield
     finally:
+        await close_cache()
         await dispose_database()
 
 

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import RECORD_TTL, SUMMARY_TTL, cache_get, cache_set
 from app.core.config import Settings, get_settings
 from app.db.models import PredictionOutcome
 from app.db.session import get_db
@@ -16,6 +17,11 @@ from app.schemas.dashboard import (
 from app.services.dashboard import DashboardService
 
 router = APIRouter(tags=["dashboard"])
+
+# Cache key prefixes – used here and imported by predict.py for invalidation.
+DASHBOARD_LIST_PREFIX = "dash:list:"
+DASHBOARD_DETAIL_PREFIX = "dash:detail:"
+DASHBOARD_SUMMARY_PREFIX = "dash:summary:"
 
 
 def get_dashboard_service() -> DashboardService:
@@ -46,7 +52,16 @@ async def list_predictions(
     session: AsyncSession = Depends(get_db),
     service: DashboardService = Depends(get_dashboard_service),
 ) -> PredictionRecordListResponse:
-    return await service.list_records(
+    cache_key = (
+        f"{DASHBOARD_LIST_PREFIX}{limit}:{offset}:{outcome}:{ok}"
+        f":{created_after}:{created_before}"
+    )
+
+    cached = await cache_get(cache_key)
+    if cached is not None:
+        return PredictionRecordListResponse(**cached)
+
+    result = await service.list_records(
         session,
         limit=limit,
         offset=offset,
@@ -55,6 +70,8 @@ async def list_predictions(
         created_after=created_after,
         created_before=created_before,
     )
+    await cache_set(cache_key, result.model_dump(mode="json"), ttl=SUMMARY_TTL)
+    return result
 
 
 @router.get(
@@ -67,9 +84,17 @@ async def get_prediction(
     session: AsyncSession = Depends(get_db),
     service: DashboardService = Depends(get_dashboard_service),
 ) -> PredictionRecordItem:
+    cache_key = f"{DASHBOARD_DETAIL_PREFIX}{record_id}"
+
+    cached = await cache_get(cache_key)
+    if cached is not None:
+        return PredictionRecordItem(**cached)
+
     item = await service.get_record(session, record_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Prediction record not found")
+
+    await cache_set(cache_key, item.model_dump(mode="json"), ttl=RECORD_TTL)
     return item
 
 
@@ -101,4 +126,13 @@ async def dashboard_summary(
             status_code=422,
             detail="start must be less than or equal to end",
         )
-    return await service.summarize_records(session, range_start=start_dt, range_end=end_dt)
+
+    cache_key = f"{DASHBOARD_SUMMARY_PREFIX}{start_dt.isoformat()}:{end_dt.isoformat()}"
+
+    cached = await cache_get(cache_key)
+    if cached is not None:
+        return DashboardSummaryResponse(**cached)
+
+    result = await service.summarize_records(session, range_start=start_dt, range_end=end_dt)
+    await cache_set(cache_key, result.model_dump(mode="json"), ttl=SUMMARY_TTL)
+    return result

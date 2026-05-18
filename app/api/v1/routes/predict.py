@@ -1,8 +1,11 @@
+import hashlib
 import random
 
 from fastapi import APIRouter, Depends, File, UploadFile
 
+from app.api.v1.routes.dashboard import DASHBOARD_LIST_PREFIX, DASHBOARD_SUMMARY_PREFIX
 from app.clients.inference_client import InferenceClient
+from app.core.cache import PREDICT_TTL, cache_get, cache_set, invalidate_prefix
 from app.core.config import Settings, get_settings
 from app.core.errors import AppError, ImageValidationError, InferenceServiceError
 from app.db.models import PredictionOutcome
@@ -16,6 +19,8 @@ from app.services.prediction_history_service import PredictionHistoryService
 from app.services.prediction_service import ESTIMATION_DISCLAIMER, PredictionService
 
 router = APIRouter(tags=["prediction"])
+
+PREDICT_CACHE_PREFIX = "predict:"
 
 
 def get_image_service(settings: Settings = Depends(get_settings)) -> ImageService:
@@ -51,6 +56,12 @@ def get_prediction_history_service() -> PredictionHistoryService:
     return PredictionHistoryService(get_session_factory())
 
 
+async def _invalidate_dashboard_cache() -> None:
+    """Clear dashboard list & summary caches after a new prediction is recorded."""
+    await invalidate_prefix(DASHBOARD_LIST_PREFIX)
+    await invalidate_prefix(DASHBOARD_SUMMARY_PREFIX)
+
+
 @router.post("/predict", response_model=PredictResponse)
 async def predict(
     file: UploadFile = File(...),
@@ -66,6 +77,13 @@ async def predict(
     try:
         image_bytes = await file.read()
 
+        # Deduplicate identical images via SHA-256 hash
+        image_hash = hashlib.sha256(image_bytes).hexdigest()
+        cache_key = f"{PREDICT_CACHE_PREFIX}{image_hash}"
+        cached = await cache_get(cache_key)
+        if cached is not None:
+            return PredictResponse(**cached)
+
         image_service.validate(image_bytes=image_bytes, content_type=file.content_type)
 
         food_result = await food_validation.validate(image_bytes, file.content_type)
@@ -80,13 +98,18 @@ async def predict(
                 message=msg,
                 detail=food_result.reason,
             )
+            await _invalidate_dashboard_cache()
             return PredictResponse(ok=False, message=msg)
 
         nutrition = await prediction_service.predict(image_bytes, file.content_type, file=file)
+        
+        #  TODO check this later
+        # message = await openai_service.generate_message(nutrition)
+        # if message is None:
+        #     message = random.choice(ESTIMATION_DISCLAIMER)
+        #  TODO check this later
 
-        message = await openai_service.generate_message(nutrition)
-        if message is None:
-            message = random.choice(ESTIMATION_DISCLAIMER)
+        message = random.choice(ESTIMATION_DISCLAIMER)
 
         await record_prediction_attempt(
             history,
@@ -97,7 +120,10 @@ async def predict(
             message=message,
             nutrition=nutrition,
         )
-        return PredictResponse(ok=True, prediction=nutrition, message=message)
+        await _invalidate_dashboard_cache()
+        response = PredictResponse(ok=True, prediction=nutrition, message=message)
+        await cache_set(cache_key, response.model_dump(mode="json"), ttl=PREDICT_TTL)
+        return response
 
     except ImageValidationError as exc:
         await record_prediction_attempt(
@@ -109,6 +135,7 @@ async def predict(
             message=exc.message,
             detail=exc.code,
         )
+        await _invalidate_dashboard_cache()
         raise
     except InferenceServiceError as exc:
         await record_prediction_attempt(
@@ -120,6 +147,7 @@ async def predict(
             message=exc.message,
             detail=exc.code,
         )
+        await _invalidate_dashboard_cache()
         raise
     except AppError as exc:
         await record_prediction_attempt(
@@ -131,6 +159,7 @@ async def predict(
             message=exc.message,
             detail=exc.code,
         )
+        await _invalidate_dashboard_cache()
         raise
     except Exception as exc:
         await record_prediction_attempt(
@@ -142,4 +171,5 @@ async def predict(
             message=None,
             detail=type(exc).__name__,
         )
+        await _invalidate_dashboard_cache()
         raise
